@@ -8,6 +8,9 @@ export default defineConfig(({mode}) => {
   return {
     base: '/noah/',
     plugins: [react(), tailwindcss()],
+    build: {
+      outDir: 'dist',
+    },
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     },
