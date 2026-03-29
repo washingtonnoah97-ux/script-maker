@@ -1,0 +1,5 @@
+{
+  "name": "Night Hub",
+  "description": "Convert script links from GitHub, Pastebin, Pastefy, and Luarmor into functional Roblox loadstring commands.",
+  "requestFramePermissions": []
+}
