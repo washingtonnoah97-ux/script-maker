@@ -5,51 +5,71 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Terminal, Copy, Check, ExternalLink, AlertCircle, Zap, ShieldCheck, Activity } from 'lucide-react';
+import { Terminal, Copy, Check, ExternalLink, AlertCircle, Zap } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
-
-const PRESET_SCRIPTS = [
-  { name: 'Fisch', url: 'https://raw.githubusercontent.com/example/fisch/main/script.lua' },
-  { name: 'MM2', url: 'https://pastebin.com/raw/mm2script' },
-  { name: 'Pet Sim 99', url: 'https://github.com/example/ps99/blob/main/main.lua' },
-  { name: 'Blox Fruits', url: 'https://pastefy.app/bloxfruits/raw' },
-];
 
 export default function App() {
   const [inputUrl, setInputUrl] = useState('');
   const [outputCommand, setOutputCommand] = useState('');
+  const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const convertScript = (urlToConvert = inputUrl) => {
-    if (!urlToConvert.trim()) {
-      toast.error('Please enter a script URL.');
+  const convertScript = () => {
+    setError('');
+    setOutputCommand('');
+    
+    const trimmedInput = inputUrl.trim();
+    if (!trimmedInput) {
+      const msg = 'Please enter a script URL.';
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+
+    // Basic URL validation
+    try {
+      new URL(trimmedInput.startsWith('http') ? trimmedInput : `https://${trimmedInput}`);
+    } catch (e) {
+      const msg = 'Malformed URL - Please enter a valid web link.';
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
     let rawUrl = '';
-    const url = urlToConvert.trim();
+    const url = trimmedInput;
 
     try {
       if (url.includes('pastebin.com')) {
         const match = url.match(/pastebin\.com\/(?:raw\/)?([a-zA-Z0-9]+)/);
-        if (match) rawUrl = `https://pastebin.com/raw/${match[1]}`;
+        if (match) {
+          rawUrl = `https://pastebin.com/raw/${match[1]}`;
+        }
       } else if (url.includes('github.com')) {
-        rawUrl = url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+        rawUrl = url
+          .replace('github.com', 'raw.githubusercontent.com')
+          .replace('/blob/', '/');
       } else if (url.includes('pastefy.app')) {
         const match = url.match(/pastefy\.app\/([a-zA-Z0-9]+)/);
-        if (match) rawUrl = `https://pastefy.app/${match[1]}/raw`;
-      } else {
-        rawUrl = url; // Treat as direct link if no match
+        if (match) {
+          rawUrl = `https://pastefy.app/${match[1]}/raw`;
+        }
+      } else if (url.includes('luarmor.net')) {
+        rawUrl = url;
       }
 
       if (rawUrl) {
         setOutputCommand(`loadstring(game:HttpGet("${rawUrl}"))()`);
-        toast.success('Loadstring generated!');
+        toast.success('Script converted successfully!');
       } else {
-        toast.error('Invalid URL format.');
+        const msg = 'Unsupported Provider - Use GitHub, Pastebin, Pastefy, or Luarmor.';
+        setError(msg);
+        toast.error(msg);
       }
     } catch (e) {
-      toast.error('Conversion failed.');
+      const msg = 'An unexpected error occurred during conversion.';
+      setError(msg);
+      toast.error(msg);
     }
   };
 
@@ -57,105 +77,78 @@ export default function App() {
     if (!outputCommand) return;
     navigator.clipboard.writeText(outputCommand);
     setCopied(true);
-    toast.success('Copied to clipboard!');
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handlePresetClick = (url: string) => {
-    setInputUrl(url);
-    convertScript(url);
-  };
-
   return (
-    <div className="min-h-screen bg-black text-[#e0e0e0] font-mono selection:bg-[#8B5CF6] selection:text-white overflow-x-hidden">
-      <Toaster position="top-right" theme="dark" richColors />
-      
-      {/* Background Effects */}
+    <div className="min-h-screen bg-[#050505] text-[#e0e0e0] font-sans selection:bg-[#8B5CF6] selection:text-white">
+      <Toaster position="top-center" theme="dark" richColors />
+      {/* Background Glow */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-[#8B5CF6] opacity-[0.08] blur-[150px] rounded-full animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#8B5CF6] opacity-[0.08] blur-[150px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#8B5CF6] opacity-[0.05] blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#8B5CF6] opacity-[0.05] blur-[120px] rounded-full" />
       </div>
 
-      <main className="relative z-10 max-w-3xl mx-auto px-6 py-12 md:py-20">
+      <main className="relative z-10 max-w-3xl mx-auto px-6 py-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="space-y-8 bg-black/60 backdrop-blur-2xl border border-[#8B5CF6]/30 p-8 md:p-12 rounded-3xl shadow-[0_0_50px_-12px_rgba(139,92,246,0.3)]"
+          className="space-y-10 bg-[#8B5CF6]/5 backdrop-blur-xl border border-[#8B5CF6]/20 p-10 rounded-3xl shadow-2xl"
         >
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3 text-[#8B5CF6]">
-                <Zap className="w-8 h-8 fill-current drop-shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
-                <div className="h-px w-12 bg-[#8B5CF6]/30" />
-              </div>
-              <h1 
-                className="text-6xl md:text-7xl font-black tracking-tighter uppercase italic text-white"
-                style={{
-                  textShadow: '0 0 20px rgba(139,92,246,0.5), -1px -1px 0 #8B5CF6, 1px -1px 0 #8B5CF6, -1px 1px 0 #8B5CF6, 1px 1px 0 #8B5CF6'
-                }}
-              >
-                NIGHT HUB
-              </h1>
-              <p className="text-xs uppercase tracking-[0.4em] text-[#8B5CF6] font-bold opacity-80">
-                Advanced Script Encryption & Conversion
-              </p>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-[#8B5CF6]">
+              <Zap className="w-7 h-7 fill-current" />
             </div>
-            
-            <div className="flex items-center gap-3 bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 px-4 py-2 rounded-full backdrop-blur-md">
-              <Activity className="w-4 h-4 text-[#8B5CF6] animate-pulse" />
-              <span className="text-[10px] uppercase tracking-widest font-bold text-zinc-400">Solara:</span>
-              <span className="text-[10px] uppercase tracking-widest font-bold text-green-400">Working ✅</span>
-            </div>
-          </div>
-
-          {/* Script Menu */}
-          <div className="space-y-4">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500 flex items-center gap-2">
-              <ShieldCheck className="w-3 h-3" /> Quick Presets
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              {PRESET_SCRIPTS.map((script) => (
-                <button
-                  key={script.name}
-                  onClick={() => handlePresetClick(script.url)}
-                  className="group relative bg-black/40 border border-[#8B5CF6]/20 hover:border-[#8B5CF6]/60 p-4 rounded-xl transition-all text-left overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-[#8B5CF6]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <span className="relative text-xs font-bold text-zinc-400 group-hover:text-white transition-colors">
-                    {script.name}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <h1 
+              className="text-7xl font-black tracking-tighter uppercase italic text-white"
+              style={{
+                textShadow: '-1px -1px 0 #8B5CF6, 1px -1px 0 #8B5CF6, -1px 1px 0 #8B5CF6, 1px 1px 0 #8B5CF6'
+              }}
+            >
+              NIGHT HUB
+            </h1>
+            <p className="text-base text-zinc-400 max-w-xl">
+              Convert raw script links into functional Roblox loadstring commands instantly.
+            </p>
           </div>
 
           {/* Input Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between px-1">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500">Input Script URL</h3>
-            </div>
+          <div className="space-y-5">
             <div className="relative group">
-              <div className="absolute -inset-1 bg-[#8B5CF6] opacity-10 group-focus-within:opacity-20 blur-lg transition duration-500 rounded-2xl"></div>
-              <div className="relative bg-black/40 border border-[#8B5CF6]/30 rounded-2xl overflow-hidden backdrop-blur-md">
-                <textarea
+              <div className="absolute -inset-0.5 bg-[#8B5CF6] opacity-20 group-focus-within:opacity-40 transition duration-500 rounded-xl"></div>
+              <div className="relative bg-black/40 border border-[#8B5CF6]/30 rounded-xl overflow-hidden backdrop-blur-md">
+                <input
+                  type="text"
                   value={inputUrl}
                   onChange={(e) => setInputUrl(e.target.value)}
                   placeholder="Paste GitHub, Pastebin, or Pastefy link..."
-                  className="w-full bg-transparent px-6 py-8 text-sm focus:outline-none placeholder:text-zinc-700 min-h-[120px] resize-none"
+                  className="w-full bg-transparent px-6 py-5 text-base focus:outline-none placeholder:text-zinc-600"
+                  onKeyDown={(e) => e.key === 'Enter' && convertScript()}
                 />
+                <button
+                  onClick={convertScript}
+                  className="absolute right-1 top-1 bottom-1 px-8 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-bold text-xs uppercase tracking-wider transition-colors rounded-lg"
+                >
+                  Convert
+                </button>
               </div>
             </div>
-            
-            <button
-              onClick={() => convertScript()}
-              className="w-full group relative py-5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-black text-sm uppercase tracking-[0.3em] transition-all rounded-2xl shadow-[0_0_30px_-5px_rgba(139,92,246,0.5)] active:scale-[0.98]"
-            >
-              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-              Generate Loadstring
-            </button>
+
+            <AnimatePresence mode="wait">
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="flex items-center gap-2 text-red-400 text-xs font-medium px-1"
+                >
+                  <AlertCircle className="w-3 h-3" />
+                  {error}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Output Section */}
@@ -169,22 +162,28 @@ export default function App() {
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-2 text-zinc-500">
                     <Terminal className="w-3 h-3" />
-                    <span className="text-[10px] uppercase tracking-widest font-bold">Generated Output</span>
+                    <span className="text-[10px] uppercase tracking-widest font-bold">Output Command</span>
                   </div>
                   <button
                     onClick={copyToClipboard}
                     className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-bold text-[#8B5CF6] hover:text-[#7C3AED] transition-colors"
                   >
                     {copied ? (
-                      <><Check className="w-3 h-3" /> Copied</>
+                      <>
+                        <Check className="w-3 h-3" />
+                        Copied
+                      </>
                     ) : (
-                      <><Copy className="w-3 h-3" /> Copy Command</>
+                      <>
+                        <Copy className="w-3 h-3" />
+                        Copy Command
+                      </>
                     )}
                   </button>
                 </div>
                 <div className="relative group">
-                  <div className="absolute -inset-1 bg-[#8B5CF6] opacity-5 rounded-2xl"></div>
-                  <div className="relative bg-black/80 border border-[#8B5CF6]/30 rounded-2xl p-6 font-mono text-xs break-all leading-relaxed text-zinc-400 backdrop-blur-md">
+                  <div className="absolute -inset-0.5 bg-[#8B5CF6] opacity-10 rounded-xl"></div>
+                  <div className="relative bg-black/60 border border-[#8B5CF6]/30 rounded-xl p-4 font-mono text-xs break-all leading-relaxed text-zinc-300 backdrop-blur-md">
                     {outputCommand}
                   </div>
                 </div>
@@ -192,32 +191,54 @@ export default function App() {
             )}
           </AnimatePresence>
 
-          {/* Footer Info */}
-          <div className="pt-8 border-t border-[#8B5CF6]/10 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-6">
-              <a 
-                href="https://discord.gg/JjqSEpj8P" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="group flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hover:text-[#8B5CF6] transition-colors"
-              >
-                Discord <ExternalLink className="w-3 h-3" />
-              </a>
-              <a 
-                href="https://www.tiktok.com/@imback2249" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="group flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hover:text-[#8B5CF6] transition-colors"
-              >
-                TikTok <ExternalLink className="w-3 h-3" />
-              </a>
+          {/* Supported Providers */}
+          <div className="pt-8 border-t border-[#8B5CF6]/20">
+            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500 mb-4">Supported Providers</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { name: 'GitHub', url: 'github.com' },
+                { name: 'Pastebin', url: 'pastebin.com' },
+                { name: 'Pastefy', url: 'pastefy.app' },
+                { name: 'Luarmor', url: 'luarmor.net' },
+              ].map((provider) => (
+                <div key={provider.name} className="flex flex-col gap-1">
+                  <span className="text-xs font-bold text-zinc-300">{provider.name}</span>
+                  <span className="text-[10px] text-zinc-500">{provider.url}</span>
+                </div>
+              ))}
             </div>
-            <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-zinc-800">
-              Night Hub &copy; 2026 // v2.0.4
-            </p>
           </div>
         </motion.div>
       </main>
+
+      {/* Footer */}
+      <footer className="fixed bottom-8 left-0 right-0 text-center flex flex-col items-center gap-4">
+        <div className="flex items-center gap-4">
+          <a 
+            href="https://discord.gg/JjqSEpj8P" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="group relative flex items-center gap-2 px-4 py-2 bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 border border-[#8B5CF6]/20 backdrop-blur-md transition-all pointer-events-auto rounded-lg"
+          >
+            <div className="absolute -inset-0.5 bg-[#8B5CF6] opacity-0 group-hover:opacity-20 blur transition-opacity"></div>
+            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#8B5CF6]">Join Discord</span>
+            <ExternalLink className="w-3 h-3 text-[#8B5CF6]" />
+          </a>
+          <a 
+            href="https://www.tiktok.com/@imback2249" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="group relative flex items-center gap-2 px-4 py-2 bg-[#8B5CF6]/10 hover:bg-[#8B5CF6]/20 border border-[#8B5CF6]/20 backdrop-blur-md transition-all pointer-events-auto rounded-lg"
+          >
+            <div className="absolute -inset-0.5 bg-[#8B5CF6] opacity-0 group-hover:opacity-20 blur transition-opacity"></div>
+            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#8B5CF6]">TikTok</span>
+            <ExternalLink className="w-3 h-3 text-[#8B5CF6]" />
+          </a>
+        </div>
+        <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-zinc-800 pointer-events-none">
+          Night Hub &copy; 2026
+        </p>
+      </footer>
     </div>
   );
 }
